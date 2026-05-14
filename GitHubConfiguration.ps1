@@ -66,6 +66,16 @@ function Set-GitHubConfiguration
 
         The Git repo for this module can be found here: http://aka.ms/PowerShellForGitHub
 
+    .PARAMETER ApiBaseUrl
+        The complete base URL for the GitHub API endpoint. This is intended for use with the
+        GITHUB_API_URL environment variable set by GitHub Actions runners. When specified, the
+        module will use this URL directly instead of constructing one from ApiHostName.
+        Supported formats:
+          - https://api.github.com (GitHub.com / GHEC)
+          - https://api.<tenant>.ghe.com (GitHub Data Residency)
+          - https://<hostname>/api/v3 (GitHub Enterprise Server)
+        Setting this value will take precedence over ApiHostName for API URL construction.
+
     .PARAMETER ApiHostName
         The hostname of the GitHub instance to communicate with. Defaults to 'github.com'. Provide a
         different hostname when using a GitHub Enterprise server. Do not include the HTTP/S prefix,
@@ -199,11 +209,22 @@ function Set-GitHubConfiguration
 
         Sets all requests to connect to a GitHub Enterprise server running at
         github.contoso.com.
+
+    .EXAMPLE
+        Set-GitHubConfiguration -ApiBaseUrl $env:GITHUB_API_URL
+
+        Sets all requests to use the API base URL provided by the GITHUB_API_URL environment
+        variable (set automatically on GitHub Actions runners). This supports GitHub.com,
+        GitHub Data Residency (ghe.com), and GitHub Enterprise Server without requiring
+        manual URL manipulation.
 #>
     [CmdletBinding(
         PositionalBinding = $false,
         SupportsShouldProcess)]
     param(
+        [ValidatePattern('^$|^https://.+')]
+        [string] $ApiBaseUrl,
+
         [ValidatePattern('^(?!https?:)(?!api\.)(?!www\.).*')]
         [string] $ApiHostName,
 
@@ -315,6 +336,7 @@ function Get-GitHubConfiguration
     param(
         [Parameter(Mandatory)]
         [ValidateSet(
+            'ApiBaseUrl',
             'ApiHostName',
             'ApplicationInsightsKey',
             'DefaultOwnerName',
@@ -674,6 +696,7 @@ function Import-GitHubConfiguration
     }
 
     $config = [PSCustomObject]@{
+        'apiBaseUrl' = [String]::Empty
         'apiHostName' = 'github.com'
         'applicationInsightsKey' = '66d83c52-3070-489b-886b-09860e05e78a'
         'disableLogging' = ([String]::IsNullOrEmpty($logPath))

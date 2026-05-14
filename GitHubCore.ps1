@@ -27,6 +27,80 @@
 
 Set-Variable -Scope Script -Option ReadOnly -Name ValidBodyContainingRequestMethods -Value ('Post', 'Patch', 'Put', 'Delete')
 
+function Get-GitHubApiBaseUrl
+{
+<#
+    .SYNOPSIS
+        Gets the base URL for GitHub API requests.
+
+    .DESCRIPTION
+        Returns the base API URL to use for requests. If ApiBaseUrl is configured, it is used
+        directly (with trailing slash removed). Otherwise, the URL is derived from ApiHostName
+        using the standard convention (api.github.com for github.com, hostname/api/v3 for GHES).
+
+    .OUTPUTS
+        [String] - The base API URL (without trailing slash).
+#>
+    [CmdletBinding()]
+    [OutputType([String])]
+    param()
+
+    $apiBaseUrl = $(Get-GitHubConfiguration -Name 'ApiBaseUrl')
+
+    if (-not [String]::IsNullOrEmpty($apiBaseUrl))
+    {
+        return $apiBaseUrl.TrimEnd('/')
+    }
+
+    $hostName = $(Get-GitHubConfiguration -Name 'ApiHostName')
+
+    if ($hostName -eq 'github.com')
+    {
+        return "https://api.$hostName"
+    }
+    else
+    {
+        return "https://$hostName/api/v3"
+    }
+}
+
+function Get-GitHubWebUrl
+{
+<#
+    .SYNOPSIS
+        Gets the web URL hostname for the configured GitHub instance.
+
+    .DESCRIPTION
+        Returns the web-facing hostname derived from configuration. If ApiBaseUrl is configured,
+        the hostname is derived from that URL. Otherwise, ApiHostName is used directly.
+
+    .OUTPUTS
+        [String] - The hostname for web URLs (e.g., github.com, tenant.ghe.com, ghes.contoso.com).
+#>
+    [CmdletBinding()]
+    [OutputType([String])]
+    param()
+
+    $apiBaseUrl = $(Get-GitHubConfiguration -Name 'ApiBaseUrl')
+
+    if (-not [String]::IsNullOrEmpty($apiBaseUrl))
+    {
+        $uri = New-Object -TypeName System.Uri -ArgumentList $apiBaseUrl.TrimEnd('/')
+        $host_ = $uri.Host
+
+        # For api.github.com or api.<tenant>.ghe.com, strip the 'api.' prefix
+        if ($host_.StartsWith('api.'))
+        {
+            return $host_.Substring(4)
+        }
+
+        # For GHES: https://<hostname>/api/v3 -> <hostname>
+        return $host_
+    }
+
+    return $(Get-GitHubConfiguration -Name 'ApiHostName')
+}
+
 function Invoke-GHRestMethod
 {
 <#
@@ -217,16 +291,8 @@ function Invoke-GHRestMethod
     # we'll just always continue the existing one...
     $stopwatch.Start()
 
-    $hostName = $(Get-GitHubConfiguration -Name "ApiHostName")
-
-    if ($hostName -eq 'github.com')
-    {
-        $url = "https://api.$hostName/$UriFragment"
-    }
-    else
-    {
-        $url = "https://$hostName/api/v3/$UriFragment"
-    }
+    $apiBaseUrl = Get-GitHubApiBaseUrl
+    $url = "$apiBaseUrl/$UriFragment"
 
     # It's possible that we are directly calling the "nextLink" from a previous command which
     # provides the full URI.  If that's the case, we'll just use exactly what was provided to us.
@@ -852,7 +918,7 @@ filter Split-GitHubUri
         repositoryName = [String]::Empty
     }
 
-    $hostName = $(Get-GitHubConfiguration -Name "ApiHostName")
+    $hostName = Get-GitHubWebUrl
 
     if (($Uri -match "^https?://(?:www.)?$hostName/([^/]+)/?([^/]+)?(?:/.*)?$") -or
         ($Uri -match "^https?://api.$hostName/repos/([^/]+)/?([^/]+)?(?:/.*)?$"))
@@ -910,7 +976,7 @@ function Join-GitHubUri
     )
 
 
-    $hostName = (Get-GitHubConfiguration -Name 'ApiHostName')
+    $hostName = Get-GitHubWebUrl
     return "https://$hostName/$OwnerName/$RepositoryName"
 }
 
