@@ -86,16 +86,16 @@ function Get-GitHubWebUrl
     if (-not [String]::IsNullOrEmpty($apiBaseUrl))
     {
         $uri = New-Object -TypeName System.Uri -ArgumentList $apiBaseUrl.TrimEnd('/')
-        $host_ = $uri.Host
+        $apiHost = $uri.Host
 
         # For api.github.com or api.<tenant>.ghe.com, strip the 'api.' prefix
-        if ($host_.StartsWith('api.'))
+        if ($apiHost.StartsWith('api.'))
         {
-            return $host_.Substring(4)
+            return $apiHost.Substring(4)
         }
 
         # For GHES: https://<hostname>/api/v3 -> <hostname>
-        return $host_
+        return $apiHost
     }
 
     return $(Get-GitHubConfiguration -Name 'ApiHostName')
