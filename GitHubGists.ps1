@@ -1751,7 +1751,7 @@ filter Add-GitHubGistCommitAdditionalProperties
 
         if (-not (Get-GitHubConfiguration -Name DisablePipelineSupport))
         {
-            $hostName = $(Get-GitHubConfiguration -Name 'ApiHostName')
+            $hostName = Get-GitHubWebUrl
             if ($item.url -match "^https?://(?:www\.|api\.|)$hostName/gists/([^/]+)/(.+)$")
             {
                 $id = $Matches[1]

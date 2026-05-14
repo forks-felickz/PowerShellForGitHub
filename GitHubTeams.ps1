@@ -986,7 +986,7 @@ filter Add-GitHubTeamAdditionalProperties
             }
             else
             {
-                $hostName = $(Get-GitHubConfiguration -Name 'ApiHostName')
+                $hostName = Get-GitHubWebUrl
 
                 if ($item.html_url -match "^https?://$hostName/orgs/([^/]+)/.*$")
                 {

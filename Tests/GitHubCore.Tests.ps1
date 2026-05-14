@@ -262,6 +262,88 @@ Describe 'Testing Split-GitHubUri' {
     }
 }
 
+Describe 'Testing Get-GitHubApiBaseUrl behavior' {
+    InModuleScope PowerShellForGitHub {
+        Context 'When ApiBaseUrl is not set' {
+            It 'Should return api.github.com for default configuration' {
+                Set-GitHubConfiguration -ApiBaseUrl '' -ApiHostName 'github.com' -SessionOnly
+                $result = Get-GitHubApiBaseUrl
+                $result | Should -Be 'https://api.github.com'
+            }
+
+            It 'Should return GHES-style URL when ApiHostName is a custom hostname' {
+                Set-GitHubConfiguration -ApiBaseUrl '' -ApiHostName 'github.contoso.com' -SessionOnly
+                $result = Get-GitHubApiBaseUrl
+                $result | Should -Be 'https://github.contoso.com/api/v3'
+            }
+        }
+
+        Context 'When ApiBaseUrl is set' {
+            It 'Should use ApiBaseUrl directly for github.com' {
+                Set-GitHubConfiguration -ApiBaseUrl 'https://api.github.com' -SessionOnly
+                $result = Get-GitHubApiBaseUrl
+                $result | Should -Be 'https://api.github.com'
+            }
+
+            It 'Should use ApiBaseUrl directly for ghe.com data residency' {
+                Set-GitHubConfiguration -ApiBaseUrl 'https://api.tenant.ghe.com' -SessionOnly
+                $result = Get-GitHubApiBaseUrl
+                $result | Should -Be 'https://api.tenant.ghe.com'
+            }
+
+            It 'Should use ApiBaseUrl directly for GHES' {
+                Set-GitHubConfiguration -ApiBaseUrl 'https://github.contoso.com/api/v3' -SessionOnly
+                $result = Get-GitHubApiBaseUrl
+                $result | Should -Be 'https://github.contoso.com/api/v3'
+            }
+
+            It 'Should strip trailing slash from ApiBaseUrl' {
+                Set-GitHubConfiguration -ApiBaseUrl 'https://api.github.com/' -SessionOnly
+                $result = Get-GitHubApiBaseUrl
+                $result | Should -Be 'https://api.github.com'
+            }
+        }
+    }
+}
+
+Describe 'Testing Get-GitHubWebUrl behavior' {
+    InModuleScope PowerShellForGitHub {
+        Context 'When ApiBaseUrl is not set' {
+            It 'Should return the ApiHostName value' {
+                Set-GitHubConfiguration -ApiBaseUrl '' -ApiHostName 'github.com' -SessionOnly
+                $result = Get-GitHubWebUrl
+                $result | Should -Be 'github.com'
+            }
+
+            It 'Should return a custom hostname' {
+                Set-GitHubConfiguration -ApiBaseUrl '' -ApiHostName 'github.contoso.com' -SessionOnly
+                $result = Get-GitHubWebUrl
+                $result | Should -Be 'github.contoso.com'
+            }
+        }
+
+        Context 'When ApiBaseUrl is set' {
+            It 'Should derive hostname from api.github.com' {
+                Set-GitHubConfiguration -ApiBaseUrl 'https://api.github.com' -SessionOnly
+                $result = Get-GitHubWebUrl
+                $result | Should -Be 'github.com'
+            }
+
+            It 'Should derive hostname from api.tenant.ghe.com' {
+                Set-GitHubConfiguration -ApiBaseUrl 'https://api.tenant.ghe.com' -SessionOnly
+                $result = Get-GitHubWebUrl
+                $result | Should -Be 'tenant.ghe.com'
+            }
+
+            It 'Should derive hostname from GHES URL' {
+                Set-GitHubConfiguration -ApiBaseUrl 'https://github.contoso.com/api/v3' -SessionOnly
+                $result = Get-GitHubWebUrl
+                $result | Should -Be 'github.contoso.com'
+            }
+        }
+    }
+}
+
 AfterAll {
     if (Test-Path -Path $script:originalConfigFile -PathType Leaf)
     {

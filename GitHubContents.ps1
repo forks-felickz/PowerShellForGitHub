@@ -558,7 +558,7 @@ filter Add-GitHubContentAdditionalProperties
 
             Add-Member -InputObject $item -Name 'RepositoryUrl' -Value $repositoryUrl -MemberType NoteProperty -Force
 
-            $hostName = $(Get-GitHubConfiguration -Name 'ApiHostName')
+            $hostName = Get-GitHubWebUrl
 
             if ($uri -match "^https?://(?:www\.|api\.|)$hostName/(?:[^/]+)/(?:[^/]+)/(?:blob|tree)/([^/]+)/([^#]*)?$")
             {

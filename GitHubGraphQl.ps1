@@ -79,16 +79,8 @@ function Invoke-GHGraphQl
 
     $stopwatch.Start()
 
-    $hostName = $(Get-GitHubConfiguration -Name 'ApiHostName')
-
-    if ($hostName -eq 'github.com')
-    {
-        $url = "https://api.$hostName/graphql"
-    }
-    else
-    {
-        $url = "https://$hostName/api/v3/graphql"
-    }
+    $apiBaseUrl = Get-GitHubApiBaseUrl
+    $url = "$apiBaseUrl/graphql"
 
     $headers = @{
         'User-Agent' = 'PowerShellForGitHub'
